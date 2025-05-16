@@ -141,55 +141,40 @@ function App() {
   const [combosByCol, setCombosByCol] = useState<Combos[]>([[],[],[],[],[]])
 
   function go() {
+    // get all possible combos for each row and column
     const newCombosByRow = combosByRow.map((_, row) => getCombos(sumCoinByRow[row], numVoltByRow[row]))
     const newCombosByCol = combosByCol.map((_, col) => getCombos(sumCoinByCol[col], numVoltByCol[col]))
-    
-    // go back through to find possibilities
-    const t = newCombosByRow.map(rowCombos => {
-      const s = rowCombos.reduce((s, combo) => {
-        combo.forEach((val, col) => s[col].add(val))
-        return s
-      }, [new Set<Val>(), new Set<Val>(), new Set<Val>(), new Set<Val>(), new Set<Val>()])
-      return s
-    })
-    update(t, newCombosByRow, newCombosByCol)
+    // update the table
+    update([...table], newCombosByRow, newCombosByCol)
   }
 
   function update(newTable: Table, combosByRow: Combos[], combosByCol: Combos[]) {
-    // keep track of updates
+    // keep track of updates to see when done (table stops changing)
     let comboTotalsByRow = combosByRow.map(rowCombos => rowCombos.length)
     let comboTotalsByCol = combosByCol.map(colCombos => colCombos.length)
     let done = false
 
-    let newCombosByCol: Combos[], newCombosByRow: Combos[]
+    let newCombosByRow: Combos[], newCombosByCol: Combos[]
     do {
-      newCombosByCol = combosByCol.map((colCombos, col) => {
-        const newColCombos = colCombos.filter(colCombo => (
-          colCombo.every((val, row) => newTable[row][col].has(val))
-        ))
-        const s = newColCombos.reduce((s, combo) => {
-          combo.forEach((val, row) => s[row].add(val))
-          return s
-        }, [new Set<Val>(), new Set<Val>(), new Set<Val>(), new Set<Val>(), new Set<Val>()])
-        // console.log(col, s)
-        s.forEach((p, row) => {
-          // console.log(row, col, p)
-          newTable[row][col] = p
-        })
-        return newColCombos
-      })
-      // do again for row
       newCombosByRow = combosByRow.map((rowCombos, row) => {
-        const newRowCombos = rowCombos.filter(rowCombo => (
-          rowCombo.every((val, col) => newTable[row][col].has(val))
-        ))
-        const s = newRowCombos.reduce((s, combo) => {
-          combo.forEach((val, row) => s[row].add(val))
-          return s
-        }, [new Set<Val>(), new Set<Val>(), new Set<Val>(), new Set<Val>(), new Set<Val>()])
+        const newRowCombos = rowCombos.filter(rowCombo => rowCombo.every((val, col) => newTable[row][col].has(val)))
+        const s = newRowCombos.reduce(
+          (s, combo) => (combo.forEach((val, col) => s[col].add(val)), s),
+          [new Set<Val>(), new Set<Val>(), new Set<Val>(), new Set<Val>(), new Set<Val>()]
+        )
         s.forEach((p, col) => newTable[row][col] = p)
         return newRowCombos
       })
+      newCombosByCol = combosByCol.map((colCombos, col) => {
+        const newColCombos = colCombos.filter(colCombo => colCombo.every((val, row) => newTable[row][col].has(val)))
+        const s = newColCombos.reduce(
+          (s, combo) => (combo.forEach((val, row) => s[row].add(val)), s),
+          [new Set<Val>(), new Set<Val>(), new Set<Val>(), new Set<Val>(), new Set<Val>()]
+        )
+        s.forEach((p, row) => newTable[row][col] = p)
+        return newColCombos
+      })
+
       // see if anything changed
       done = (
         newCombosByCol.every((colCombos, i) => colCombos.length === comboTotalsByCol[i]) &&
