@@ -141,11 +141,19 @@ function App() {
   const [combosByCol, setCombosByCol] = useState<Combos[]>([[],[],[],[],[]])
 
   function go() {
-    // get all possible combos for each row and column
     const newCombosByRow = combosByRow.map((_, row) => getCombos(sumCoinByRow[row], numVoltByRow[row]))
     const newCombosByCol = combosByCol.map((_, col) => getCombos(sumCoinByCol[col], numVoltByCol[col]))
-    // update the table
-    update([...table], newCombosByRow, newCombosByCol)
+    
+    // first pass at possible values
+    const newTable = newCombosByRow.map(rowCombos => {
+      const s = rowCombos.reduce((s, combo) => {
+        combo.forEach((val, col) => s[col].add(val))
+        return s
+      }, [new Set<Val>(), new Set<Val>(), new Set<Val>(), new Set<Val>(), new Set<Val>()])
+      return s
+    })
+    console.log(table, newTable)
+    update(newTable, newCombosByRow, newCombosByCol)
   }
 
   function update(newTable: Table, combosByRow: Combos[], combosByCol: Combos[]) {
@@ -180,6 +188,7 @@ function App() {
         newCombosByCol.every((colCombos, i) => colCombos.length === comboTotalsByCol[i]) &&
         newCombosByRow.every((rowCombos, i) => rowCombos.length === comboTotalsByRow[i])
       )
+      // update total combos for another pass
       comboTotalsByRow = newCombosByRow.map(rowCombos => rowCombos.length)
       comboTotalsByCol = newCombosByCol.map(colCombos => colCombos.length)
     } while (!done)
@@ -270,6 +279,7 @@ function App() {
         </tbody>
       </table>
       <button onClick={() => go()} disabled={!numVoltByRow.length || !numVoltByCol.length || !sumCoinByRow.length || !sumCoinByCol.length}>Go</button>
+      <div>Coin Total: {sumCoinByRow.reduce((a, b) => a * b, 1)}</div>
     </>
   )
 }
