@@ -279,7 +279,7 @@ function App() {
         </tbody>
       </table>
       <button onClick={() => go()} disabled={!numVoltByRow.length || !numVoltByCol.length || !sumCoinByRow.length || !sumCoinByCol.length}>Go</button>
-      <div>Coin Total: {sumCoinByRow.reduce((a, b) => a * b, 1)}</div>
+      {/* this is wrong, need product of coin vals <div>Coin Total: {sumCoinByRow.reduce((a, b) => a * b, 1)}</div> */}
     </>
   )
 }
