@@ -19,6 +19,65 @@ function isCoinSumArray(a: CoinSumInput[]): a is CoinSum[] {
 function isNumVoltorbsArray(a: NumVoltorbsInput[]): a is NumVoltorbs[] {
   return !a.some(num => num === '')
 }
+//Level: Voltorbs, 1s, 2s, 3s, Coins
+const levels: [number, number, number, number, number][][] = [
+  [
+    [6, 0, 3, 1, 24],
+    [6, 0, 0, 3, 27],
+    [6, 0, 5, 0, 32],
+    [6, 0, 2, 2, 36],
+    [6, 0, 4, 1, 48],
+  ],
+  [
+    [7, 0, 1, 3, 54],
+    [7, 0, 6, 0, 64],
+    [7, 0, 3, 2, 72],
+    [7, 0, 0, 4, 81],
+    [7, 0, 5, 1, 96],
+  ],
+  [
+    [8, 0, 2, 3, 108],
+    [8, 0, 7, 0, 128],
+    [8, 0, 4, 2, 144],
+    [8, 0, 1, 4, 162],
+    [8, 0, 6, 1, 192],
+  ],
+  [
+    [8, 0, 3, 3, 216],
+    [8, 0, 0, 5, 243],
+    [10, 0, 8, 0, 256],
+    [10, 0, 5, 2, 288],
+    [10, 0, 2, 4, 324],
+  ],
+  [
+    [10, 0, 7, 1, 384],
+    [10, 0, 4, 3, 432],
+    [10, 0, 1, 5, 486],
+    [10, 0, 9, 0, 512],
+    [10, 0, 6, 2, 576],
+  ],
+  [
+    [10, 0, 3, 4, 648],
+    [10, 0, 0, 6, 729],
+    [10, 0, 8, 1, 768],
+    [10, 0, 5, 3, 864],
+    [10, 0, 2, 5, 972],
+  ],
+  [
+    [10, 0, 7, 2, 1152],
+    [10, 0, 4, 4, 1296],
+    [13, 0, 1, 6, 1458],
+    [13, 0, 9, 1, 1536],
+    [10, 0, 6, 3, 1728],
+  ],
+  [
+    [10, 0, 0, 7, 2187],
+    [10, 0, 8, 2, 2304],
+    [10, 0, 5, 4, 2592],
+    [10, 0, 2, 6, 2916],
+    [10, 0, 7, 3, 3456], 
+  ],
+]
 
 const allVals = [0, 1, 2, 3] as const
 
@@ -99,24 +158,28 @@ function Cell({ vals, pickVal, bg }: { vals: PossibleVals, pickVal: (coin: Coin)
 }
 
 const defaults: {
+  level: number,
   numVoltByRow: NumVoltorbs[],
   numVoltByCol: NumVoltorbs[],
   sumCoinByRow: CoinSum[],
   sumCoinByCol: CoinSum[],
 }[] = [
   {
+    level: 7,
     numVoltByRow: [3,2,1,3,1],
     numVoltByCol: [2,3,2,1,2],
     sumCoinByRow: [4,5,6,4,10],
     sumCoinByCol: [5,4,7,8,5],
   },
   {
+    level: 7,
     numVoltByRow: [2,2,3,0,3],
     numVoltByCol: [2,2,3,2,1],
     sumCoinByRow: [6,5,5,9,3],
     sumCoinByCol: [7,5,5,5,6],
   },
   {
+    level: 7,
     numVoltByRow: [1,1,3,3,2],
     numVoltByCol: [3,2,3,2,0],
     sumCoinByRow: [6,8,4,5,4],
@@ -152,7 +215,6 @@ function App() {
       }, [new Set<Val>(), new Set<Val>(), new Set<Val>(), new Set<Val>(), new Set<Val>()])
       return s
     })
-    console.log(table, newTable)
     update(newTable, newCombosByRow, newCombosByCol)
   }
 
@@ -191,6 +253,34 @@ function App() {
       // update total combos for another pass
       comboTotalsByRow = newCombosByRow.map(rowCombos => rowCombos.length)
       comboTotalsByCol = newCombosByCol.map(colCombos => colCombos.length)
+
+      // const known = [0, 0, 0, 0]
+      // newTable.forEach(rowVals => {
+      //   rowVals.forEach(val => {
+      //     if (val.size === 1) {
+      //       known[[...val][0]]++
+      //     }
+      //   })
+      // })
+      const known = newCombosByRow.reduce((totalKnown, combos, row) => {
+        const knowns = combos.map((combo, i) => {
+          return combo.reduce((known, val) => {
+            if (val == 2) known[0]++
+            if (val == 3) known[1]++
+            return known
+          }, [0, 0] as [number, number])
+        })
+        const most2s = Math.max(...knowns.map(([known2s]) => known2s))
+        const most3s = Math.max(...knowns.map(([_, known3s]) => known3s))
+        totalKnown[0] += most2s
+        totalKnown[1] += most3s
+        return totalKnown
+      }, [0, 0] as [number, number])
+      const matchingLevelData = levelData.filter(([numVoltorbs, num1s, num2s, num3s, score]) => (
+        known[0] >= num2s &&
+        known[1] >= num3s
+      ))
+      console.log(known, matchingLevelData)
     } while (!done)
     setTable([...newTable])
     setCombosByRow(newCombosByRow)
@@ -208,14 +298,19 @@ function App() {
     //sum--
     const denom = combosByRow[row].length + combosByCol[col].length// - 1
     const percentVoltorbs = denom ? sum / denom : 0
-    console.log(row, col, sum, denom, percentVoltorbs)
+    //console.log(row, col, sum, denom, percentVoltorbs)
     return probabilityToRGB(percentVoltorbs)
   }
 
+  const [level, setLevel] = useState(0)
+  const levelData = levels[level]
+
   return (
     <>
-      Load default: {defaults.map((d, i) => (
+      <div>
+        Load default: {defaults.map((d, i) => (
           <button key={i} onClick={() => {
+            setLevel(d.level)
             setSumCoinByRowInput(d.sumCoinByRow)
             setSumCoinByRow(d.sumCoinByRow)
             setSumCoinByColInput(d.sumCoinByCol)
@@ -226,6 +321,12 @@ function App() {
             setNumVoltByCol(d.numVoltByCol)
           }}>{i}</button>
         ))}
+      </div>
+      <div>
+        Level: <select onChange={e => setLevel(+e.target.value)}>
+          {levels.map((_, i) => <option key={i} value={i} selected={level === i}>{i + 1}</option>)}
+        </select>
+      </div>
       <table>
         <tbody>
           {table.map((possibleValsRow, row) => (
@@ -280,6 +381,7 @@ function App() {
       </table>
       <button onClick={() => go()} disabled={!numVoltByRow.length || !numVoltByCol.length || !sumCoinByRow.length || !sumCoinByCol.length}>Go</button>
       {/* this is wrong, need product of coin vals <div>Coin Total: {sumCoinByRow.reduce((a, b) => a * b, 1)}</div> */}
+      {levelData}
     </>
   )
 }
